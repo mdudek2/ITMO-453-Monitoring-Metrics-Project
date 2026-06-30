@@ -95,6 +95,12 @@
         port: "9090"
         proto: tcp
 
+    - name: Allow access to grafana web interface
+      community.general.ufw:
+        rule: allow
+        port: "3000"
+        proto: tcp
+
     - name: Enable UFW Firewall Service
       community.general.ufw:
         state: enabled

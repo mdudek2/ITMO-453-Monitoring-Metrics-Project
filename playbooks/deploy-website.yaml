@@ -157,3 +157,74 @@
       ansible.builtin.systemd:
         name: prometheus
         state: restarted
+
+# install grafana on the prometheus node
+- name: Install and configure Grafana
+  hosts: prometheus
+  become: true
+  become_method: sudo
+
+  vars:
+    ansible_user: admin
+    ansible_ssh_private_key_file: /home/maks/.ssh/project-ssh-key
+
+  tasks:
+    - name: Install required packages for Grafana
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - wget
+          - gnupg
+        state: present
+        update_cache: true
+    
+    # add the repo and add the keys
+    - name: Create APT keyrings directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Download Grafana GPG key
+      ansible.builtin.get_url:
+        url: https://apt.grafana.com/gpg-full.key
+        dest: /etc/apt/keyrings/grafana.asc
+        mode: "0644"
+
+    - name: Add Grafana APT repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/grafana.asc] https://apt.grafana.com stable main"
+        filename: grafana
+        state: present
+    
+    # install grafana and enable the service
+    - name: Install Grafana
+      ansible.builtin.apt:
+        name: grafana
+        state: present
+        update_cache: true
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Enable and Start Grafana Service
+      ansible.builtin.systemd:
+        name: grafana-server
+        enabled: true
+        state: started
+    
+    # copy prometheus config and restart the service to apply the new source
+    - name: Copy Prometheus Grafana Datasource
+      ansible.builtin.copy:
+        src: "/home/maks/Documents/repos/mdudek2/ITMO-453-Monitoring-Metrics-Project/configs/prometheus-grafana.yaml"
+        dest: /etc/grafana/provisioning/datasources/prometheus-grafana.yaml
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Restart Grafana to Enable DataSource
+      ansible.builtin.systemd:
+        name: grafana-server
+        state: restarted
+      

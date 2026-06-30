@@ -5,11 +5,11 @@ scrape_configs:
     file_sd_configs:
       - files:
           - /etc/prometheus/targets/node.json
-        refresh_interval: 30s
+        refresh_interval: 15s
     
   # nginx
   - job_name: nginx
     file_sd_configs:
       - files:
           - /etc/prometheus/targets/nginx.json
-        refresh_interval: 30s
+        refresh_interval: 15s
