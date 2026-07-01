@@ -82,7 +82,7 @@ done
 
 # Wait for a few minutes so that unattended install finishes
 echo "Sleeping for a few minutes to give VM's time to finish installing."
-sleep 480
+sleep 600
 
 # Output all IP addresses on vboxnet0 
 # 192.168.56.100 is the dhcp server
