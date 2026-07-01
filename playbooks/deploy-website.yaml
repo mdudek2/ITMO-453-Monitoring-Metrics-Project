@@ -143,6 +143,10 @@
   vars:
     ansible_user: admin
     ansible_ssh_private_key_file: /home/maks/.ssh/project-ssh-key
+    
+    # these are configured in my .bashrc to avoid leaking sensitive credentials to version control
+    grafana_smtp_user: "{{ lookup('env', 'GRAFANA_SMTP_USER') }}"
+    grafana_smtp_password: "{{ lookup('env', 'GRAFANA_SMTP_PASSWORD') }}"
 
   tasks:
     - name: Install required packages for Grafana
@@ -190,7 +194,7 @@
         enabled: true
         state: started
     
-    # copy prometheus config and restart the service to apply the new source
+    # copy grafana config and restart the service to apply the new source
     - name: Copy Prometheus Grafana Datasource
       ansible.builtin.copy:
         src: "/home/maks/Documents/repos/mdudek2/ITMO-453-Monitoring-Metrics-Project/configs/prometheus-grafana.yaml"
@@ -198,9 +202,89 @@
         owner: root
         group: root
         mode: "0644"
+    
+    # Add a directory
+    - name: Create Directory For Custom Dashboards
+      ansible.builtin.file:
+        path: /var/lib/grafana/dashboards # cannot be in the provider path or it will cause the grafana server to crash
+        state: directory
+        owner: grafana
+        group: grafana
+        mode: '0755'
+    
+    # This file tells Grafana where to look for dashboards
+    - name: Configure Grafana Dashboard Provider File
+      ansible.builtin.copy:
+        src: "/home/maks/Documents/repos/mdudek2/ITMO-453-Monitoring-Metrics-Project/configs/dashboard-imports.yaml"
+        dest: /etc/grafana/provisioning/dashboards/ansible_provider.yaml
+        owner: root
+        group: root
+        mode: '0644'
+    
+    # copying all the dashboards
+    - name: Copy First Grafana Dashboard
+      ansible.builtin.copy:
+        src: "/home/maks/Documents/repos/mdudek2/ITMO-453-Monitoring-Metrics-Project/dashboards/12708_rev1.json"
+        dest: /var/lib/grafana/dashboards/12708_rev1.json
+        owner: grafana
+        group: grafana
+        mode: '0644'
 
-    - name: Restart Grafana to Enable DataSource
+    - name: Copy Second Grafana Dashboard
+      ansible.builtin.copy:
+        src: "/home/maks/Documents/repos/mdudek2/ITMO-453-Monitoring-Metrics-Project/dashboards/1860_rev45.json"
+        dest: /var/lib/grafana/dashboards/1860_rev45.json
+        owner: grafana
+        group: grafana
+        mode: '0644'
+
+    - name: Restart Grafana
       ansible.builtin.systemd:
         name: grafana-server
         state: restarted
-      
+    
+    # copying all the configs needed to set up alerting
+    - name: Copy Contact Points For Alerts
+      ansible.builtin.copy:
+        src: "/home/maks/Documents/repos/mdudek2/ITMO-453-Monitoring-Metrics-Project/alerts/contact-points.yaml"
+        dest: /etc/grafana/provisioning/alerting/contact-points.yaml
+        owner: grafana
+        group: grafana
+        mode: '0644'
+
+    - name: Copy Hardware Alerts
+      ansible.builtin.copy:
+        src: "/home/maks/Documents/repos/mdudek2/ITMO-453-Monitoring-Metrics-Project/alerts/hardware-alerts.yaml"
+        dest: /etc/grafana/provisioning/alerting/hardware-alerts.yaml
+        owner: grafana
+        group: grafana
+        mode: '0644'
+
+    - name: Copy Notification Policies
+      ansible.builtin.copy:
+        src: "/home/maks/Documents/repos/mdudek2/ITMO-453-Monitoring-Metrics-Project/alerts/notification-policies.yaml"
+        dest: /etc/grafana/provisioning/alerting/notification-policies.yaml
+        owner: grafana
+        group: grafana
+        mode: '0644'
+
+    # configure smtp in grafana to enable email alerts.
+    - name: Configure SMTP
+      blockinfile:
+        path: /etc/grafana/grafana.ini
+        marker: "; {mark} ANSIBLE SMTP CONFIG"
+        block: |
+          [smtp]
+          enabled = true
+          host = smtp.gmail.com:587
+          user = {{ grafana_smtp_user }}
+          password = {{ grafana_smtp_password }}
+          from_address = {{ grafana_smtp_user }}
+          from_name = Grafana
+          startTLS_policy = OpportunisticStartTLS
+          skip_verify = false
+
+    - name: Restart Grafana
+      ansible.builtin.systemd:
+        name: grafana-server
+        state: restarted
