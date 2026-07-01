@@ -11,7 +11,7 @@ This section will explain what each of the scripts in the project does as well a
 
 ### `provision.sh`
 
-This script uses VBoxManage to launch and automatically configure machines. There are variables at the top that can be used to easily change a few settings. The script also makes use of the arp-scan utility in order to dynamically discover the IP addresses of the hosts that are launched on the virtual network. This allows the script to both launch virtual machines and also configure an ansible inventory automatically without user intervention.
+This script uses VBoxManage to launch and automatically configure machines. There are variables at the top that can be used to easily change a few settings. This script will also automatically add the created virtual machines to the ansible inventory file in /etc/hosts/ansible. 
 
 ### `initial-hardening.sh`
 
@@ -30,7 +30,7 @@ This script runs the firewall.yaml playbook.
 
 This playbook configures firewall rules for both the webservers and the prometheus server that is monitoring them. All servers have UFW installed
 and allow ssh access on port 22. The webservers allow web traffic on ports 80 and 443. These servers also use nginx-exporter and node-exporter, so 
-ports 9100 and 9113 are also open to allow prometheus to monitor them. Port 9090 is open on the prometheus node to allow admins to view the monitoring dashboard through the browser.
+ports 9100 and 9113 are also open to allow prometheus to monitor them. Port 9090 is open on the prometheus node to allow admins to view the monitoring dashboard through the browser. Port 3000 is also open in order to allow access to the Grafana web interface.
 
 ### `deploy-site.sh`
 
@@ -38,11 +38,7 @@ This script runs the deploy-website.yaml playbook.
 
 ### `deploy-website.yaml`
 
-This playbook copies over hello-site.conf and metrics.conf to each of the servers nginx configuration directories. It also copies index.html to the servers. This script also instals the needed exporters so that prometheus can monitor each of the webservers. Prometheus is also configured via this script. The script will copy over the prometheus.yml file in order to configure the server to run monitoring jobs for both exporters. The discover-hosts.sh script is also copied over to the prometheus instance and then executed as part of the installation.
-
-### `discover-hosts.sh`
-
-This script is executed on the prometheus server. It uses nmap to scan for hosts on ports 9100 and 9113 in order to dynamically discover the webservers running both exporters. It exports results to a target directory in json format that is read by prometheus.
+This playbook copies over hello-site.conf and metrics.conf to each of the servers nginx configuration directories. It also copies index.html to the servers. This script also instals the needed exporters so that prometheus can monitor each of the webservers. Prometheus is also configured via this script. The script will copy over the prometheus.yml file in order to configure the server to run monitoring jobs for both exporters. The discover-hosts.sh script is also copied over to the prometheus instance and then executed as part of the installation. Grafana is also configured with custom dashboards as well as automatically set up alerts via email.
 
 ### `openscap-hardening.sh`
 
