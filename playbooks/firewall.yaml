@@ -1,6 +1,6 @@
 ---
 - name: Configure UFW for webservers
-  hosts: webservers
+  hosts: labproject
   become: true
   become_method: sudo
   
@@ -41,52 +41,19 @@
         rule: allow
         port: "443"
         proto: tcp
-
+    
+    # might not be needed anymore
     - name: Allow Node Exporter
       community.general.ufw:
         rule: allow
         port: "9100"
         proto: tcp
-
+    
+    # might not be needed anymore
     - name: Allow Nginx Exporter
       community.general.ufw:
         rule: allow
         port: "9113"
-        proto: tcp
-
-    - name: Enable UFW Firewall Service
-      community.general.ufw:
-        state: enabled
-
-- name: Configure UFW for prometheus
-  hosts: prometheus
-  become: true
-  become_method: sudo
-
-  vars:
-    ansible_user: admin
-    ansible_ssh_private_key_file: /home/maks/.ssh/project-ssh-key
-  
-  # Firewall rules for prometheus
-  tasks:
-    - name: Reset UFW Firewall on prometheus
-      community.general.ufw:
-        state: reset
-
-    - name: Add Default deny incoming rule on prometheus
-      community.general.ufw:
-        direction: incoming
-        policy: deny
-
-    - name: Add Default allow outgoing rule on prometheus
-      community.general.ufw:
-        direction: outgoing
-        policy: allow
-
-    - name: Allow SSH Access to prometheus
-      community.general.ufw:
-        rule: allow
-        port: "22"
         proto: tcp
 
     - name: Allow Prometheus web interface access

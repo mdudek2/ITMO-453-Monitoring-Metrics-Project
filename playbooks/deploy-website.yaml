@@ -1,6 +1,6 @@
 ---
-- name: Configure nginx and deploy site
-  hosts: webservers
+- name: Configure Services
+  hosts: labproject
   become: true
   become_method: sudo
 
@@ -109,7 +109,7 @@
         state: restarted
 
 - name: Configure prometheus to monitor the deployed website
-  hosts: prometheus
+  hosts: labproject
   become: true
   become_method: sudo
 
@@ -128,30 +128,6 @@
         group: root
         mode: '0644'
     
-    # copy the discover script. This script runs once and scans for hosts
-    - name: Copy the host discovery script to the prometheus instance
-      ansible.builtin.copy:
-        src: "/home/maks/Documents/repos/mdudek2/ITMO-453-Monitoring-Metrics-Project/scripts/discover-hosts.sh"
-        dest: /etc/prometheus/discover-hosts.sh
-        owner: root
-        group: root
-        mode: '0755'
-
-    # nmap and jq are needed by the discovery script
-    - name: Install needed dependencies via apt
-      ansible.builtin.apt:
-        name:
-          - nmap
-          - jq
-        state: present
-    
-    # run the script
-    - name: Run the discovery script
-      ansible.builtin.shell: /etc/prometheus/discover-hosts.sh
-      args:
-        chdir: /etc/prometheus
-        executable: /bin/bash
-    
     # restart prometheus to apply the configuration
     - name: Restart prometheus
       ansible.builtin.systemd:
@@ -160,7 +136,7 @@
 
 # install grafana on the prometheus node
 - name: Install and configure Grafana
-  hosts: prometheus
+  hosts: labproject
   become: true
   become_method: sudo
 

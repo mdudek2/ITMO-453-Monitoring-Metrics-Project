@@ -1,6 +1,6 @@
 ---
-- name: Collect web server logs
-  hosts: webservers
+- name: Collect Server Logs
+  hosts: labproject
   become: true
   become_method: sudo
   
@@ -15,21 +15,21 @@
   tasks:
     
     # make a directory on each host to initially store logs
-    - name: Create collection directory
+    - name: Create Collection Directory
       file:
         path: "{{ collect_dir }}"
         state: directory
         mode: '0755'
     
     # nginx logs
-    - name: Collect nginx access log
+    - name: Collect Nginx Access Log
       copy:
         remote_src: true
         src: /var/log/nginx/access.log
         dest: "{{ collect_dir }}/nginx_access.log"
       ignore_errors: true
 
-    - name: Collect nginx error log
+    - name: Collect Nginx Error Log
       copy:
         remote_src: true
         src: /var/log/nginx/error.log
@@ -37,7 +37,7 @@
       ignore_errors: true
      
      # auth log
-    - name: Collect auth log
+    - name: Collect Auth Log
       copy:
         remote_src: true
         src: /var/log/auth.log
@@ -45,7 +45,7 @@
       ignore_errors: true
      
     # syslog
-    - name: Collect syslog
+    - name: Collect Syslog
       copy:
         remote_src: true
         src: /var/log/syslog
@@ -53,56 +53,56 @@
       ignore_errors: true
 
     # journals
-    - name: Collect nginx journal
+    - name: Collect Nginx Journal
       shell: |
         journalctl -u nginx --no-pager > {{ collect_dir }}/journal_nginx.log
       changed_when: false
 
-    - name: Collect system journal
+    - name: Collect System Journal
       shell: |
         journalctl --no-pager > {{ collect_dir }}/journal_system.log
       changed_when: false
     
     # kernel log
-    - name: Collect kernel log
+    - name: Collect Kernel Log
       shell: |
         journalctl -k --no-pager > {{ collect_dir }}/kernel.log
       changed_when: false
     
     # cron log
-    - name: Collect cron log entries
+    - name: Collect Cron Log Entries
       shell: |
         journalctl -u cron --no-pager > {{ collect_dir }}/cron.log
       changed_when: false
       ignore_errors: true
     
     # disk logs
-    - name: Collect disk usage
+    - name: Collect Disk Usage
       shell: |
         df -h > {{ collect_dir }}/disk_usage.txt
       changed_when: false
     
     # memory info
-    - name: Collect memory information
+    - name: Collect Memory Information
       shell: |
         free -m > {{ collect_dir }}/memory.txt
       changed_when: false
     
     # socket log
-    - name: Collect listening sockets
+    - name: Collect Listening Sockets
       shell: |
         ss -tulpn > {{ collect_dir }}/listening_ports.txt
       changed_when: false
     
     # make an archive
-    - name: Create archive
+    - name: Create Archive
       archive:
         path: "{{ collect_dir }}"
         dest: "/tmp/{{ archive_name }}"
         format: gz
     
     # ensure destination exists on control node
-    - name: Ensure local output directory exists
+    - name: Ensure Local Output Directory Exists
       delegate_to: localhost
       become: false
       file:
@@ -110,20 +110,20 @@
         state: directory
     
     # grab the logs
-    - name: Fetch archive
+    - name: Fetch Archive
       fetch:
         src: "/tmp/{{ archive_name }}"
         dest: "{{ local_output_dir }}/"
         flat: true
     
     # cleanup
-    - name: Cleanup collection directory
+    - name: Cleanup Collection Directory
       file:
         path: "{{ collect_dir }}"
         state: absent
    
     # remove archive on each host
-    - name: Remove remote archive
+    - name: Remove Remote Archive
       file:
         path: "/tmp/{{ archive_name }}"
         state: absent
