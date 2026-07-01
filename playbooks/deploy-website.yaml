@@ -144,9 +144,8 @@
     ansible_user: admin
     ansible_ssh_private_key_file: /home/maks/.ssh/project-ssh-key
     
-    # these are configured in my .bashrc to avoid leaking sensitive credentials to version control
-    grafana_smtp_user: "{{ lookup('env', 'GRAFANA_SMTP_USER') }}"
-    grafana_smtp_password: "{{ lookup('env', 'GRAFANA_SMTP_PASSWORD') }}"
+  vars_files:
+    - /home/maks/Documents/repos/mdudek2/ITMO-453-Monitoring-Metrics-Project/ansible-vars.yaml
 
   tasks:
     - name: Install required packages for Grafana
@@ -269,21 +268,23 @@
         mode: '0644'
 
     # configure smtp in grafana to enable email alerts.
-    - name: Configure SMTP
-      blockinfile:
+    - name: Configure Grafana SMTP
+      ansible.builtin.ini_file:
         path: /etc/grafana/grafana.ini
-        marker: "; {mark} ANSIBLE SMTP CONFIG"
-        block: |
-          [smtp]
-          enabled = true
-          host = smtp.gmail.com:587
-          user = {{ grafana_smtp_user }}
-          password = {{ grafana_smtp_password }}
-          from_address = {{ grafana_smtp_user }}
-          from_name = Grafana
-          startTLS_policy = OpportunisticStartTLS
-          skip_verify = false
-      
+        section: smtp
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        no_extra_spaces: true
+      loop:
+        - { option: enabled, value: "true" }
+        - { option: host, value: "smtp.gmail.com:587" }
+        - { option: user, value: "{{ grafana_smtp_user }}" }
+        - { option: password, value: "\"\"\"{{ grafana_smtp_password }}\"\"\"" }
+        - { option: from_address, value: "{{ grafana_smtp_user }}" }
+        - { option: from_name, value: "Grafana" }
+        - { option: startTLS_policy, value: "OpportunisticStartTLS" }
+        - { option: skip_verify, value: "false" }
+
     - name: Restart Grafana
       ansible.builtin.systemd:
         name: grafana-server
